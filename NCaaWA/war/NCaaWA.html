@@ -1,0 +1,847 @@
+<html>
+<head>
+
+<link type="text/css" rel="stylesheet" href="NCaaWA.css">
+<script type="text/javascript" language="javascript"
+	src="ncaawa/ncaawa.nocache.js"></script>
+<script
+	src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script type="text/javascript" src="vis.js"></script>
+<script type="text/javascript">
+	var nodes, edges, network;
+
+	// convenience method to stringify a JSON object
+	function toJSON(obj) {
+		return JSON.stringify(obj, null, 4);
+	}
+
+	$(window)
+			.load(
+					function() {
+						// attach actions to the node buttons
+						$('#node-add').click(function() {
+							try {
+								if ($('#node-id').val() && $('#node-label').val()) {
+									nodes.add({
+										id : $('#node-id').val(),
+										label : $('#node-label').val()
+									});
+									
+								} else {
+									alert("Node ID or Label cannot be null");
+								}
+
+							} catch (err) {
+								alert(err);
+							}
+						});
+						$('#node-update').click(function() {
+							try {
+								if ($('#node-id').val() && $('#node-label').val()) 
+								{									
+									nodes.update({
+									id : $('#node-id').val(),
+									label : $('#node-label').val()
+								});
+								}		 
+								else {
+										alert("Node ID or Label cannot be null");
+									 }
+							} catch (err) {
+								alert(err);
+							}
+						});
+						$('#node-remove').click(function() {
+							try 
+							{	if ($('#node-id').val() && $('#node-label').val()) 
+							{
+									var id = $('#node-id').val();
+									nodes.remove(id);
+									//removing corresponding edges associated with this ID
+									var fromEdges=edges.get({
+										filter: function(item){
+											return (item.from == $('#node-id').val());
+										}
+									});
+									
+									var toEdges=edges.get({
+										filter: function(item){
+											return (item.to == $('#node-id').val());
+										}
+									});
+									edges.remove(fromEdges);
+									edges.remove(toEdges);
+									
+									
+									
+							}else
+								{
+								alert("Node ID or Label cannot be null");
+								}
+							
+							} 
+							catch (err) {
+								alert(err);
+							}
+						});
+
+						// attach actions to the edge buttons
+						$('#edge-add').click(function() 
+								{
+											try {
+												if ($('#edge-id').val() && $('#edge-from').val() && $('#edge-to').val()) 
+												{   
+													
+													var valFrom=nodes.get({
+														filter: function(item){
+															return (item.id == $('#edge-from').val());
+														}
+													});
+													
+													var valTo=nodes.get({
+														filter: function(item){
+															return (item.id == $('#edge-to').val());
+														}
+													});
+													
+													
+													if(valFrom.length==0 || valTo.length==0){
+														alert("From/To Server is not part of the network.Please enter correct ServerIDs");
+														
+													}
+													else
+														{
+
+														var value=edges.get({
+															filter: function(item){
+																return(item.from == $('#edge-from').val() && item.to == $('#edge-to').val());
+															}
+														}); 
+														
+													
+														if($('#edge-from').val()==$('#edge-to').val())
+															{
+															alert("Cannot add self loops. Edge-from and Edge-to should be different");
+															}
+														else
+															{
+															 if(!value.length==0)
+																{
+																	 alert("Edge is already present between these two nodes. Duplicate edges are not allowed");
+																} 
+																 else
+																 {
+																	 edges.add({
+																			id : $('#edge-id').val(),
+																			from : $('#edge-from').val(),
+																			to : $('#edge-to').val()
+																		});	
+																		
+																		  
+																 }
+															}
+															
+														}
+													
+													
+																																
+												} else {
+													alert("Edge ID/Edge-from/Edge-to cannot be null");
+												}
+
+											} catch (err) {
+												alert(err);
+											}
+								});
+						$('#edge-update').click(function() 
+						{
+							try 
+							{
+								if ($('#edge-id').val() && $('#edge-from').val() && $('#edge-to').val()) 
+								{
+									
+									  var fromNode=nodes.get({
+										filter: function(item){
+											return (item.id == $('#edge-from').val());
+										}
+									});
+									
+									var toNode=nodes.get({
+										filter: function(item){
+											return (item.id == $('#edge-to').val());
+										}
+									});
+									
+									if(fromNode.length==0 || toNode.length==0){
+										alert("Cannot update this edge. From/To node is not part of the network");
+									}  
+
+									else{
+										
+										edges.update({
+											id : $('#edge-id').val(),
+											from : $('#edge-from').val(),
+											to : $('#edge-to').val()
+											});		
+										
+									}
+								
+								} else {
+									alert("Edge ID/Edge-from/Edge-to cannot be null");
+								}
+
+							} catch (err) 
+							{
+								alert(err);
+							}
+						});
+						$('#edge-remove').click(function() {
+							try {
+								var id = $('#edge-id').val();
+								if ($('#edge-id').val()){
+									edges.remove(id);	
+								}
+								else
+									{
+									alert("Edge-ID cannot be null");
+									}
+								
+								
+							} catch (err) {
+								alert(err);
+							}
+						});
+
+						// create an array with nodes
+						nodes = new vis.DataSet();
+						nodes.subscribe('*', function() {
+							$('#nodes').html(toJSON(nodes.get()));
+						});
+						nodes.add([ {
+							id : '1',
+							label : 'Server 1'
+						}, ]);
+
+						// create an array with edges
+						edges = new vis.DataSet();
+						edges.subscribe('*', function() {
+							$('#edges').html(toJSON(edges.get()));
+						});
+						edges.add([]);
+
+						// create a network
+						var container = $('#network').get(0);
+						var data = {
+							nodes : nodes,
+							edges : edges
+						};
+						var options = {};
+						network = new vis.Network(container, data, options);
+
+						$('#calculation')
+								.click(
+										function() {
+											if (!($('#source_server').val() && $(
+													'#sink_server').val()))
+												alert("Source or sink path cannot be empty");
+
+											/* if(!$('#source_server').val())
+												alert("source cannot be empty"); */
+
+										});
+
+						$('#clearContent').click(function() {
+							
+							nodes.clear();
+							edges.clear();
+
+						});
+
+					});
+
+	
+</script>
+
+<style type="text/css">
+#menu ul, #menu li, #menu span, #menu a {
+	margin: 0;
+	padding: 0;
+	position: relative;
+}
+
+#menu {
+	line-height: 1;
+	border-radius: 5px 5px 0 0; background : #141414;
+	border-bottom: 2px solid #0fa1e0;
+	width: auto;
+	background: #141414;
+}
+
+#menu:after, #menu ul:after {
+	content: '';
+	display: block;
+	clear: both;
+}
+
+#menu a {
+	background: #141414;
+	background: -moz-linear-gradient(top, #333333 0%, #141414 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #333333),
+		color-stop(100%, #141414));
+	background: -webkit-linear-gradient(top, #333333 0%, #141414 100%);
+	background: -o-linear-gradient(top, #333333 0%, #141414 100%);
+	background: -ms-linear-gradient(top, #333333 0%, #141414 100%);
+	background: linear-gradient(to bottom, #333333 0%, #141414 100%);
+	color: #ffffff;
+	display: block;
+	font-family: Helvetica, Arial, Verdana, sans-serif;
+	padding: 19px 20px;
+	text-decoration: none;
+}
+
+#menu ul {
+	list-style: none;
+}
+
+#menu>ul>li {
+	display: inline-block;
+	float: left;
+	margin: 0;
+}
+
+#menu.align-center {
+	text-align: center;
+}
+
+#menu.align-center>ul>li {
+	float: none;
+}
+
+#menu.align-center ul ul {
+	text-align: left;
+}
+
+#menu.align-right>ul {
+	float: right;
+}
+
+#menu.align-right ul ul {
+	text-align: right;
+}
+
+#menu>ul>li>a {
+	color: #ffffff;
+	font-size: 12px;
+}
+
+#menu>ul>li:hover:after {
+	content: '';
+	display: block;
+	width: 0;
+	height: 0;
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	border-left: 10px solid transparent;
+	border-right: 10px solid transparent;
+	border-bottom: 10px solid #0fa1e0;
+	margin-left: -10px;
+}
+
+#menu>ul>li:first-child>a {
+	border-radius: 5px 0 0 0;
+	-moz-border-radius: 5px 0 0 0;
+	-webkit-border-radius: 5px 0 0 0;
+}
+
+#menu.align-right>ul>li:first-child>a, #menu.align-center>ul>li:first-child>a
+	{
+	border-radius: 0;
+	-moz-border-radius: 0;
+	-webkit-border-radius: 0;
+}
+
+#menu.align-right>ul>li:last-child>a {
+	border-radius: 0 5px 0 0;
+	-moz-border-radius: 0 5px 0 0;
+	-webkit-border-radius: 0 5px 0 0;
+}
+
+#menu>ul>li.active>a, #menu>ul>li:hover>a {
+	color: #ffffff;
+	background: #070707;
+}
+
+#menu .has-sub {
+	z-index: 1;
+}
+
+#menu .has-sub:hover>ul {
+	display: block;
+}
+
+#menu .has-sub ul {
+	display: none;
+	position: absolute;
+	width: 200px;
+	top: 100%;
+	left: 0;
+}
+
+#menu.align-right .has-sub ul {
+	left: auto;
+	right: 0;
+}
+
+#menu .has-sub ul li {
+	*margin-bottom: -1px;
+}
+
+#menu .has-sub ul li a {
+	background: #0fa1e0;
+	border-bottom: 1px dotted #31b7f1;
+	font-size: 11px;
+	filter: none;
+	display: block;
+	line-height: 120%;
+	padding: 10px;
+	color: #ffffff;
+}
+
+#menu .has-sub ul li:hover a {
+	background: #0c7fb0;
+}
+
+#menu ul ul li:hover>a {
+	color: #ffffff;
+}
+
+#menu .has-sub .has-sub:hover>ul {
+	display: block;
+}
+
+#menu .has-sub .has-sub ul {
+	display: none;
+	position: absolute;
+	left: 100%;
+	top: 0;
+}
+
+#menu.align-right .has-sub .has-sub ul, #menu.align-right ul ul ul {
+	left: auto;
+	right: 100%;
+}
+
+body {
+	/* 	background-image: url('pic3.jpg');
+	background-repeat: repeat-y; */
+	background-color: #CCCCCC;
+}
+
+#header {
+	font-family: Algerian;
+	font-size: 60px;
+	color: #0F1F3D;
+	/*background-image: url('pic.jpg');*/
+	font-weight: bold;
+	/*   margin: 40px 0px 70px; */
+	text-align: center;
+}
+
+h3 {
+	font-family: Elephant;
+	color: #0F1F3D;
+}
+
+#node-add, #node-update, #node-remove, #edge-add, #edge-update,
+	#edge-remove, #calculation,#clearContent {
+	background: #1F5C99;
+	width: 100%;
+	padding: 5px 0;
+	border-radius: 3px 3px 0 0;
+	color: white;
+	font-size: 0.8em;
+	border-radius: 10px;
+}
+
+#demo1, #demo2, #demo3, #demo4 {
+	background-color: transparent;
+	border: none;
+	cursor: pointer;
+	color: white;
+}
+
+.result_left {
+    float: left;
+	padding-left: 5%;
+}
+.result_right {    
+    float: right;
+    padding-right: 5%;
+}
+
+nav {
+	width: 20%;
+	float: left;
+}
+
+section {
+	width: 100%;
+	float: right;
+}
+
+.nodes {
+	width: 500px;
+}
+
+.aside input[type=text] {
+	padding: 10px;
+	border-radius: 1px;
+	margin: 5px auto;
+	border: 1px solid silver;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+table.view {
+	width: 100%;
+}
+
+table td {
+	vertical-align: top;
+}
+
+input[type=text], pre {
+	border: 1px solid lightgray;
+	border-radius: 1px;
+}
+
+pre {
+	margin: 0;
+	padding: 5px;
+	font-size: 10pt;
+}
+
+#network {
+	width: 100%;
+	height: 500px;
+	border: 1px solid lightgray;
+}
+
+.modalDialog {
+	position: fixed;
+	
+	font-family: Arial, Helvetica, sans-serif;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background: rgba(0, 0, 0, 0.8);
+	z-index: 99999;
+	opacity: 0;
+	-webkit-transition: opacity 400ms ease-in;
+	-moz-transition: opacity 400ms ease-in;
+	transition: opacity 400ms ease-in;
+	pointer-events: none;
+}
+
+.modalDialog:target {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.modalDialog>div {
+	width: 70%;	
+	height:90%;
+	position: relative;
+	margin: 1% auto;
+	padding: 5px 20px 13px 20px;
+	border-radius: 10px;
+	background: #fff;
+}
+
+#extra1 {
+	float: left;
+	padding-left: 5%;
+}
+
+#extra2 {
+	float: right;
+	padding-right: 5%;
+}
+
+#template1,#template2 {
+	
+	font-size: 15px;
+	border-top: 1px solid #ddd;
+	border-bottom: 1px solid #ddd;
+	background: #34495E;
+	color: #fff;
+	border-radius: .4em;	 
+}
+
+#template3 {
+	font-size: 15px;
+	border-top: 1px solid #ddd;
+	border-bottom: 1px solid #ddd;
+	background: #34495E;
+	color: #fff;
+	border-radius: .4em;
+	margin: 5%;
+}
+
+#edge-to, #edge-from, #edge-id, #node-id, #node-label, #source_server,
+	#sink_server, #arrival_curve, #service_curve, #max_service_curve,#service_curve_Rate,#service_curve_Latency,
+	#arrival_curve_Rate,#arrival_curve_Burst {
+	border-radius: 2px;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	margin-top: 5px;
+}
+
+
+</style>
+</head>
+<header>
+	<div id="header" align="center">Disco NCaaWA</div>
+</header>
+<body>
+
+	<div id="menu">
+		<ul>
+		
+			<li class='has-sub'><a href='#'><span>Add Server</span></a>
+				<ul>
+					<li class='has-sub'>
+						<a href='#'> 
+						<span>
+							<table width=100%>
+								<tr>
+									<td><input id="node-id" type="text" placeholder="Enter Server Unique Id"></td>
+								</tr>
+								<tr>
+									<td><input id="node-label" type="text" placeholder="Enter Server Label"></td>
+								</tr>
+							</table>
+							<table width=100%>
+								<tr>
+									<td width=33.33%><button id="node-add">Add</button></td>
+									<td width=33.33%><button id="node-update">Update</button></td>
+									<td width=33.33%><button id="node-remove">Remove</button></td>
+								</tr>			
+							</table>
+						</span></a></li>
+				</ul>
+			</li>
+			
+ 			<li class='has-sub'><a href='#'><span>Add Link</span></a>
+				<ul>
+					<li class='has-sub'>
+						<a href='#'> 
+						<span>
+						<table width=100%>
+							<tr>
+								<td><input id="edge-id" type="text"	placeholder="Enter Link Unique Id"></td>
+							</tr>
+							<tr>
+								<td><input id="edge-from" type="text" placeholder="Enter From Server Link"></td>
+							</tr>
+							<tr>
+								<td><input id="edge-to" type="text" placeholder="Enter To Server Link"></td>
+							</tr>
+						</table>
+						<table width=100%>
+							<tr>
+								<td width=33.33%><button id="edge-add">Add</button></td>
+								<td width=33.33%><button id="edge-update">Update</button></td>
+								<td width=33.33%><button id="edge-remove">Remove</button></td>
+							</tr>
+						</table>
+						</span></a></li>
+				</ul>
+			</li>
+							
+						 			
+			<li class='has-sub'><a href='#'><span>Add Flow</span></a>
+				<ul>
+					<li class='has-sub'>
+						<a href='#'> 
+						<span>
+								<table width=100%>
+									<tr>
+										<td><input id="source_server" type="text" placeholder="Enter Source Server"></td>
+									</tr>
+									<tr>
+										<td><input id="sink_server" type="text" placeholder="Enter Sink Server"></td>
+									</tr>
+									<tr class="master">
+										<td><button id="calculation">Calculate Result</button></td>
+									</tr>
+								</table>
+						</span></a></li>
+
+				</ul>
+			</li>
+
+			<li class='has-sub'><a href='#'><span>Set Service Curves</span></a>
+				<ul>
+					<li class='has-sub'>
+						<a href='#'> 
+						<span>
+							<table width=100%>
+								<tr>
+       								<td><input id="service_curve_Rate" type="text" placeholder="Service Curve Rate Value"></td>
+        						</tr>
+        						<tr>
+       								<td><input id="service_curve_Latency" type="text" placeholder="Service Curve Latency Value"></td>
+        						</tr>
+							</table>
+						</span></a>
+					</li>
+				</ul>
+			</li>
+					
+			<li class='has-sub'><a href='#'><span>Set Arrival Curves</span></a>
+				<ul>
+					<li class='has-sub'>
+						<a href='#'> 
+						<span>
+							<table width=100%>
+								<tr>
+       								<td><input id="arrival_curve_Rate" type="text" placeholder="Arrival Curve Rate Value"></td>
+        						</tr>
+        						<tr>
+       								<td><input id="arrival_curve_Burst" type="text" placeholder="Arrival Curve Burst Value"></td>
+        						</tr>
+							</table>
+						</span></a></li>
+				</ul>
+			</li>
+			
+			<li class='has-sub' id="demos"><a href='#'><span>Run Demos</span></a>
+				<ul>
+					<li class='has-sub'><span><a href="#openModal">
+								<button id="demo1">Demo 1</button>
+						</a> </span></li>
+					<li class='has-sub'><span><a href="#openModal">
+								<button id="demo2">Demo 2</button>
+						</a> </span></li>
+					<li class='has-sub'><span><a href="#openModal">
+								<button id="demo3">Demo 3</button>
+						</a> </span></a></li>
+					<li class='has-sub'><span><a href="#openModal">
+								<button id="demo4">Demo 4</button>
+						</a> </span></li>
+				</ul>
+			</li>
+ 
+		</ul>
+
+	</div>
+ 
+		<div id="extra2">
+									
+		<button id="clearContent">Reset Network</button>
+	</div>
+		<div id="extra1">
+			<h3>Instructions</h3>
+			<ul style="list-style-type: disc;">
+				<li>Service and Arrival Curve values are optional and Maximum Service Curve values are Fix.</li>
+				<li>Service Curve Default values : Rate=10.0e6, Latency=0.01</li>
+				<li>Arrival Curve Default values    :Rate=0.1e6, Burstiness=0.1 * 0.1e6</li>
+				<li>Max. Service Curve Fix Values : Rate=100.0e6, Latency=0.001 </li>
+				<li>You will find the result at bottom after the Network, On Clicking Calculate Result Button</li>
+			</ul>
+		</div>
+
+		<div id="contain">
+			<table class="view">
+				<colgroup>
+					<col width="60%">
+					<col width="20%">
+					<col width="20%">
+				</colgroup>
+				<tr>
+					<td id="network_position">
+						<h3 align=center>Network</h3>
+						<div id="network"></div>
+					</td>
+					<td id="nodes_position">
+						<h3 align=center>Server</h3> <pre id="nodes"></pre>
+					</td>
+					<td id="edge_position">
+						<h3 align=center>Edges</h3> <pre id="edges"></pre>
+					</td>
+
+				</tr>
+			</table>
+		</div>
+	</section>
+
+	<div id="openModal" class="modalDialog">
+		<div>
+			<a href="#close" title="Close" class="close">X</a>
+			<h2 align="center" id="demo_title"></h2>
+			<div class="result_left">
+			<h3>Network Configuration And Curve Values</h3>
+			<table id="template1" cellpadding="10">
+				<tr>
+					<td>Server</td>
+					<td id="server"></td>
+				
+				</tr>
+				<tr>
+					<td>Arrival Curve</td>
+					<td id="Arrival_curve"></td>
+					
+				</tr>
+				<tr>
+					<td>Service Curve</td>
+					<td id="Service_curve"></td>
+				
+				</tr>
+				<tr>
+					<td>Max. Service Curve</td>
+					<td id="Max_service_curve"></td>
+				</tr>
+			</table>
+			</div>
+			<div class="result_right";>
+			<h3 align="left">Results</h3>
+			<table id="template2" cellpadding="10">
+				<tr>
+					<td></td>
+					<td>Delay Bound</td>
+					<td>Backlog Bound</td>					
+				</tr>
+				<tr>
+					<td>PMOO</td>					
+					<td id="pmoo_delay"></td>
+					<td id="pmoo_backlog"></td>
+				</tr>
+
+				<tr>
+					<td>SFA</td>
+					<td id="sfa_delay"></td>
+					<td id="sfa_backlog"></td>
+				</tr>
+				<tr>
+					<td>TFA</td>
+					<td id="tfa_delay"></td>
+					<td id="tfa_backlog"></td>
+				</tr>
+			</table>
+			</div>
+			
+			<table id="template3">
+				<tr>
+					<td width="20%">Flow OF Intrest:</td>
+					<td id="flow_of_intrest"></td>
+				</tr>
+			</table>
+		</div>
+	</div>
+
+	
+</body>
+</html>

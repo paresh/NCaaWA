@@ -1,0 +1,2 @@
+serviceClass: unikl.disco.dnc.client.GreetingService
+path: 0A8CA6E585B1FDD6368F19E1429CC59D.gwt.rpc

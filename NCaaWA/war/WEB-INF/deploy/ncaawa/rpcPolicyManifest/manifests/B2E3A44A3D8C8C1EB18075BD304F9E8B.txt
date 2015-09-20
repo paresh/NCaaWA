@@ -1,0 +1,2 @@
+serviceClass: unikl.disco.dnc.client.DemoService
+path: 3B3DE8520DE277DE118EBACE487016B0.gwt.rpc

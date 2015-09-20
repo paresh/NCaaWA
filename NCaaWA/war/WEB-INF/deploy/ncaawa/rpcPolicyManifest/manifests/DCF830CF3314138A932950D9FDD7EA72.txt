@@ -1,0 +1,2 @@
+serviceClass: unikl.disco.dnc.client.DiscoDNCAnalysis
+path: 8C0139447B7E4CA80D70DB89B5134ADA.gwt.rpc
