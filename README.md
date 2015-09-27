@@ -1,6 +1,11 @@
 # NCaaWA
 Network Calculus as a Web Application
-Download and install GWT SDk from: http://www.gwtproject.org/download.html
+
+This web application is build for open source tool DiscoDNC(Deterministic Network Calculator). https://disco.informatik.uni-kl.de/index.php/projects/disco-dnc
+
+Follow these steps for setup and running the application:
+
+Download and install GWT SDK from: http://www.gwtproject.org/download.html
 Install GWT plugin for the IDE which you are using. 
 GWT plugin for eclipse can be found at: https://developers.google.com/eclipse/?hl=en
 Open Eclipse and Import this project. 
